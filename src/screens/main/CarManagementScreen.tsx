@@ -1,5 +1,6 @@
-import { useState } from "react";
-import { View, StyleSheet, ScrollView } from "react-native";
+// src/screens/main/CarManagementScreen.tsx
+import { useState, useCallback } from "react";
+import { View, StyleSheet, ScrollView, Alert } from "react-native";
 import {
   Text,
   Button,
@@ -7,11 +8,15 @@ import {
   Modal,
   TextInput,
   List,
-  FAB,
+  ActivityIndicator,
+  IconButton,
 } from "react-native-paper";
+import { useCars } from "../../hooks/useCars";
 import { format } from "date-fns";
+import { useFocusEffect } from "@react-navigation/native";
 
 export default function CarManagementScreen() {
+  const { cars, loading, error, addCar, deleteCar, fetchCars } = useCars();
   const [visible, setVisible] = useState(false);
   const [brand, setBrand] = useState("");
   const [model, setModel] = useState("");
@@ -19,39 +24,189 @@ export default function CarManagementScreen() {
   const [oilChangeKm, setOilChangeKm] = useState("10000");
   const [oilChangeMonths, setOilChangeMonths] = useState("12");
   const [odometer, setOdometer] = useState("");
+  const [lastOilChangeKm, setLastOilChangeKm] = useState("");
+  const [lastOilChangeDate, setLastOilChangeDate] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+
+  // Refresh data when screen comes into focus
+  useFocusEffect(
+    useCallback(() => {
+      fetchCars();
+    }, [fetchCars])
+  );
+
+  const validateForm = () => {
+    if (
+      !brand ||
+      !model ||
+      !year ||
+      !oilChangeKm ||
+      !oilChangeMonths ||
+      !odometer ||
+      !lastOilChangeKm ||
+      !lastOilChangeDate
+    ) {
+      Alert.alert("Error", "Please fill in all fields");
+      return false;
+    }
+
+    const yearNum = parseInt(year);
+    if (
+      isNaN(yearNum) ||
+      yearNum < 1900 ||
+      yearNum > new Date().getFullYear()
+    ) {
+      Alert.alert("Error", "Please enter a valid year");
+      return false;
+    }
+
+    const odometerNum = parseInt(odometer);
+    if (isNaN(odometerNum) || odometerNum < 0) {
+      Alert.alert("Error", "Please enter a valid odometer reading");
+      return false;
+    }
+
+    return true;
+  };
 
   const handleSubmit = async () => {
-    // TODO: Implement car registration
-    setVisible(false);
+    if (!validateForm()) return;
+
+    setSubmitting(true);
+    const response = await addCar({
+      brand,
+      model,
+      year: parseInt(year),
+      oil_change_km: parseInt(oilChangeKm),
+      oil_change_months: parseInt(oilChangeMonths),
+      current_odometer_km: parseInt(odometer),
+      last_oil_change_km: parseInt(lastOilChangeKm),
+      last_oil_change_date: new Date(lastOilChangeDate).toISOString(),
+    });
+
+    setSubmitting(false);
+
+    if (response.success) {
+      setVisible(false);
+      resetForm();
+      // Refresh cars data after adding a new car
+      await fetchCars();
+      Alert.alert("Success", "Car added successfully");
+    } else {
+      Alert.alert("Error", response.error || "Failed to add car");
+    }
   };
+
+  const handleDelete = async (id: string) => {
+    Alert.alert(
+      "Delete Car",
+      "Are you sure you want to delete this car? This action cannot be undone.",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: async () => {
+            const response = await deleteCar(id);
+            if (!response.success) {
+              Alert.alert("Error", response.error || "Failed to delete car");
+            } else {
+              // Refresh cars data after deleting a car
+              await fetchCars();
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const resetForm = () => {
+    setBrand("");
+    setModel("");
+    setYear("");
+    setOilChangeKm("10000");
+    setOilChangeMonths("12");
+    setOdometer("");
+    setLastOilChangeKm("");
+    setLastOilChangeDate("");
+  };
+
+  if (loading && !cars.length) {
+    return (
+      <View style={styles.centerContainer}>
+        <ActivityIndicator size="large" />
+      </View>
+    );
+  }
+
+  if (error) {
+    return (
+      <View style={styles.centerContainer}>
+        <Text>Error loading cars. Please try again.</Text>
+        <Button onPress={() => window.location.reload()}>Reload</Button>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
       <ScrollView>
-        {/* Car List */}
-        <List.Section>
-          <List.Subheader>My Cars</List.Subheader>
-          <List.Item
-            title="Toyota Camry"
-            description="2020 • Last service: 5,000 km ago"
-            left={(props) => <List.Icon {...props} icon="car" />}
-          />
-        </List.Section>
+        {cars.length === 0 ? (
+          <View style={styles.emptyCars}>
+            <Text style={styles.emptyText}>No cars added yet</Text>
+            <Button mode="contained" onPress={() => setVisible(true)}>
+              Add Your First Car
+            </Button>
+          </View>
+        ) : (
+          <List.Section>
+            <List.Subheader>My Cars</List.Subheader>
+            {cars.map((car) => (
+              <List.Item
+                key={car.id}
+                title={`${car.brand} ${car.model}`}
+                description={`${
+                  car.year
+                } • ${car.current_odometer_km.toLocaleString()} km\nNext oil change: ${Math.max(
+                  0,
+                  car.last_oil_change_km +
+                    car.oil_change_km -
+                    car.current_odometer_km
+                ).toLocaleString()} km or ${format(
+                  new Date(car.last_oil_change_date),
+                  "MMM dd, yyyy"
+                )}`}
+                left={(props) => <List.Icon {...props} icon="car" />}
+                right={(props) => (
+                  <IconButton
+                    {...props}
+                    icon="delete"
+                    onPress={() => handleDelete(car.id)}
+                  />
+                )}
+              />
+            ))}
+          </List.Section>
+        )}
 
-        <Button
-          mode="contained"
-          onPress={() => setVisible(true)}
-          style={styles.addButton}
-        >
-          Add New Car
-        </Button>
+        {cars.length > 0 && (
+          <Button
+            mode="contained"
+            onPress={() => setVisible(true)}
+            style={styles.addButton}
+          >
+            Add Another Car
+          </Button>
+        )}
       </ScrollView>
 
-      {/* Add Car Modal */}
       <Portal>
         <Modal
           visible={visible}
-          onDismiss={() => setVisible(false)}
+          onDismiss={() => {
+            setVisible(false);
+            resetForm();
+          }}
           contentContainerStyle={styles.modal}
         >
           <Text style={styles.modalTitle}>Add New Car</Text>
@@ -95,14 +250,36 @@ export default function CarManagementScreen() {
           />
 
           <TextInput
-            label="Current Odometer Reading"
+            label="Current Odometer Reading (km)"
             value={odometer}
             onChangeText={setOdometer}
             keyboardType="numeric"
             style={styles.input}
           />
 
-          <Button mode="contained" onPress={handleSubmit} style={styles.button}>
+          <TextInput
+            label="Last Oil Change Odometer Reading (km)"
+            value={lastOilChangeKm}
+            onChangeText={setLastOilChangeKm}
+            keyboardType="numeric"
+            style={styles.input}
+          />
+
+          <TextInput
+            label="Last Oil Change Date"
+            value={lastOilChangeDate}
+            onChangeText={setLastOilChangeDate}
+            placeholder="YYYY-MM-DD"
+            style={styles.input}
+          />
+
+          <Button
+            mode="contained"
+            onPress={handleSubmit}
+            style={styles.button}
+            loading={submitting}
+            disabled={submitting}
+          >
             Save Car
           </Button>
         </Modal>
@@ -116,40 +293,23 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#f5f5f5",
   },
-  statsCard: {
-    backgroundColor: "white",
-    padding: 16,
-    margin: 16,
-    borderRadius: 8,
-    elevation: 2,
+  centerContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 20,
   },
-  statsValue: {
-    fontSize: 24,
-    fontWeight: "bold",
-    textAlign: "center",
+  emptyCars: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 20,
+    marginTop: 40,
   },
-  statsLabel: {
-    fontSize: 14,
+  emptyText: {
+    fontSize: 16,
     color: "#666",
-    textAlign: "center",
-    marginTop: 4,
-  },
-  progressBar: {
-    height: 8,
-    backgroundColor: "#e0e0e0",
-    borderRadius: 4,
-    margin: 16,
-  },
-  progress: {
-    height: "100%",
-    backgroundColor: "#4CAF50",
-    borderRadius: 4,
-  },
-  fab: {
-    position: "absolute",
-    margin: 16,
-    right: 0,
-    bottom: 0,
+    marginBottom: 20,
   },
   modal: {
     backgroundColor: "white",

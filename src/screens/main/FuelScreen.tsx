@@ -1,5 +1,6 @@
-import { useState } from "react";
-import { View, StyleSheet, ScrollView } from "react-native";
+// src/screens/main/FuelScreen.tsx
+import React, { useState, memo, useCallback, useEffect, useRef } from "react";
+import { View, StyleSheet, ScrollView, Alert } from "react-native";
 import {
   Text,
   Button,
@@ -7,106 +8,381 @@ import {
   Modal,
   TextInput,
   List,
-  FAB,
+  ActivityIndicator,
+  IconButton,
+  SegmentedButtons,
 } from "react-native-paper";
+import { useCars } from "../../hooks/useCars";
+import { useFuelEntries } from "../../hooks/useFuelEntries";
 import { format } from "date-fns";
+import { useFocusEffect } from "@react-navigation/native";
 
+// Memoized Form Component to prevent unnecessary re-renders
+const AddFuelEntryForm = memo(
+  ({
+    visible,
+    onDismiss,
+    onSubmit,
+    defaultOdometer,
+  }: {
+    visible: boolean;
+    onDismiss: () => void;
+    onSubmit: (formData: {
+      date: string;
+      station_name: string;
+      liters: string;
+      price_per_liter: string;
+      total_price: string;
+      odometer_km: string;
+    }) => void;
+    defaultOdometer: number;
+  }) => {
+    const [priceInputMethod, setPriceInputMethod] = useState("total");
+    const [formData, setFormData] = useState({
+      date: format(new Date(), "yyyy-MM-dd"),
+      station_name: "",
+      liters: "",
+      price_per_liter: "",
+      total_price: "",
+      odometer_km: defaultOdometer.toString(),
+    });
+
+    const updateField = (field: string) => (value: string) => {
+      setFormData((prev) => {
+        const newData = { ...prev, [field]: value };
+
+        if (
+          field === "liters" ||
+          field === "price_per_liter" ||
+          field === "total_price"
+        ) {
+          const liters = parseFloat(newData.liters) || 0;
+          const pricePerLiter = parseFloat(newData.price_per_liter) || 0;
+          const totalPrice = parseFloat(newData.total_price) || 0;
+
+          if (priceInputMethod === "per_liter" && liters && pricePerLiter) {
+            newData.total_price = (liters * pricePerLiter).toFixed(2);
+          } else if (priceInputMethod === "total" && liters && totalPrice) {
+            newData.price_per_liter = (totalPrice / liters).toFixed(2);
+          }
+        }
+
+        return newData;
+      });
+    };
+
+    const handleSubmit = () => {
+      onSubmit(formData);
+      setFormData({
+        date: format(new Date(), "yyyy-MM-dd"),
+        station_name: "",
+        liters: "",
+        price_per_liter: "",
+        total_price: "",
+        odometer_km: defaultOdometer.toString(),
+      });
+    };
+
+    return (
+      <Portal>
+        <Modal
+          visible={visible}
+          onDismiss={onDismiss}
+          contentContainerStyle={styles.modal}
+        >
+          <ScrollView>
+            <Text style={styles.modalTitle}>Add Fuel Entry</Text>
+
+            <TextInput
+              label="Date"
+              defaultValue={formData.date}
+              onChangeText={updateField("date")}
+              placeholder="YYYY-MM-DD"
+              style={styles.input}
+            />
+
+            <TextInput
+              label="Gas Station Name"
+              defaultValue={formData.station_name}
+              onChangeText={updateField("station_name")}
+              style={styles.input}
+            />
+
+            <TextInput
+              label="Liters"
+              defaultValue={formData.liters}
+              onChangeText={updateField("liters")}
+              keyboardType="numeric"
+              style={styles.input}
+            />
+
+            <SegmentedButtons
+              value={priceInputMethod}
+              onValueChange={setPriceInputMethod}
+              buttons={[
+                { value: "total", label: "Total Price" },
+                { value: "per_liter", label: "Price per Liter" },
+              ]}
+              style={styles.segmentedButton}
+            />
+
+            {priceInputMethod === "per_liter" ? (
+              <TextInput
+                label="Price per Liter (BGN)"
+                defaultValue={formData.price_per_liter}
+                onChangeText={updateField("price_per_liter")}
+                keyboardType="numeric"
+                style={styles.input}
+              />
+            ) : (
+              <TextInput
+                label="Total Price (BGN)"
+                defaultValue={formData.total_price}
+                onChangeText={updateField("total_price")}
+                keyboardType="numeric"
+                style={styles.input}
+              />
+            )}
+
+            <TextInput
+              label="Odometer Reading (km)"
+              defaultValue={defaultOdometer.toString()}
+              onChangeText={updateField("odometer_km")}
+              keyboardType="numeric"
+              style={styles.input}
+            />
+
+            <Button
+              mode="contained"
+              onPress={handleSubmit}
+              style={styles.button}
+            >
+              Save Entry
+            </Button>
+          </ScrollView>
+        </Modal>
+      </Portal>
+    );
+  }
+);
+
+// Memoized Stats Card Component
+const StatsCard = memo(({ title, value }: { title: string; value: string }) => (
+  <View style={styles.statsCard}>
+    <Text style={styles.statsValue}>{value}</Text>
+    <Text style={styles.statsLabel}>{title}</Text>
+  </View>
+));
+
+// Main Screen Component
 export default function FuelScreen() {
-  const [visible, setVisible] = useState(false);
-  const [stationName, setStationName] = useState("");
-  const [liters, setLiters] = useState("");
-  const [pricePerLiter, setPricePerLiter] = useState("");
-  const [totalPrice, setTotalPrice] = useState("");
-  const [odometer, setOdometer] = useState("");
-  const [date, setDate] = useState(new Date());
+  const { cars, loading: carsLoading, fetchCars } = useCars();
+  const [selectedCarId, setSelectedCarId] = useState<string | null>(null);
+  const isInitialMount = useRef(true);
+  const {
+    entries,
+    loading: entriesLoading,
+    error,
+    averageConsumption,
+    addEntry,
+    deleteEntry,
+    refreshEntries,
+  } = useFuelEntries(selectedCarId || "", fetchCars); // Pass fetchCars as callback
 
-  const handleSubmit = async () => {
-    // TODO: Implement fuel entry submission
-    setVisible(false);
+  useEffect(() => {
+    if (isInitialMount.current && !selectedCarId && cars.length > 0) {
+      setSelectedCarId(cars[0].id);
+      isInitialMount.current = false;
+    }
+  }, [cars, selectedCarId]);
+
+  useFocusEffect(
+    useCallback(() => {
+      if (selectedCarId) {
+        fetchCars();
+      }
+    }, [fetchCars, selectedCarId])
+  );
+
+  const handleCarSelect = useCallback((newCarId: string) => {
+    setSelectedCarId(newCarId);
+  }, []);
+
+  const [visible, setVisible] = useState(false);
+
+  const currentCar = cars.find((car) => car.id === selectedCarId);
+
+  const validateForm = (formData: any) => {
+    const { station_name, liters, odometer_km } = formData;
+
+    if (!station_name || !liters || !odometer_km) {
+      Alert.alert("Error", "Please fill in all required fields");
+      return false;
+    }
+
+    const litersNum = parseFloat(liters);
+    if (isNaN(litersNum) || litersNum <= 0) {
+      Alert.alert("Error", "Please enter a valid amount of liters");
+      return false;
+    }
+
+    const odometerNum = parseInt(odometer_km);
+    if (isNaN(odometerNum) || odometerNum < 0) {
+      Alert.alert("Error", "Please enter a valid odometer reading");
+      return false;
+    }
+
+    if (currentCar && odometerNum <= currentCar.current_odometer_km) {
+      Alert.alert(
+        "Error",
+        "Odometer reading must be greater than the current reading"
+      );
+      return false;
+    }
+
+    return true;
   };
+
+  const handleSubmit = async (formData: any) => {
+    if (!validateForm(formData)) return;
+    if (!selectedCarId) {
+      Alert.alert("Error", "Please select a car first");
+      return;
+    }
+
+    const response = await addEntry({
+      date: formData.date,
+      station_name: formData.station_name,
+      liters: parseFloat(formData.liters),
+      price_per_liter: parseFloat(formData.price_per_liter),
+      total_price: parseFloat(formData.total_price),
+      odometer_km: parseInt(formData.odometer_km),
+    });
+
+    if (response.success) {
+      setVisible(false);
+      // Refresh both cars and entries data
+      await Promise.all([fetchCars(), refreshEntries()]);
+      Alert.alert("Success", "Fuel entry added successfully");
+    } else {
+      Alert.alert("Error", response.error || "Failed to add fuel entry");
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    Alert.alert("Delete Entry", "Are you sure you want to delete this entry?", [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Delete",
+        style: "destructive",
+        onPress: async () => {
+          const response = await deleteEntry(id);
+          if (response.success) {
+            // Refresh both cars and entries data after deletion
+            await Promise.all([fetchCars(), refreshEntries()]);
+          } else {
+            Alert.alert("Error", response.error || "Failed to delete entry");
+          }
+        },
+      },
+    ]);
+  };
+
+  if (carsLoading) {
+    return (
+      <View style={styles.centerContainer}>
+        <ActivityIndicator size="large" />
+      </View>
+    );
+  }
+
+  if (cars.length === 0) {
+    return (
+      <View style={styles.centerContainer}>
+        <Text>Please add a car first</Text>
+        <Button mode="contained" style={styles.button} onPress={() => {}}>
+          Go to Cars
+        </Button>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
       <ScrollView>
-        {/* Last Fuel Entry Summary */}
-        <List.Section>
-          <List.Subheader>Last Refuel</List.Subheader>
-          <View style={styles.statsCard}>
-            <Text style={styles.statsValue}>8.2 L/100km</Text>
-            <Text style={styles.statsLabel}>Average Consumption</Text>
-          </View>
-        </List.Section>
+        {/* Car Selection */}
+        <SegmentedButtons
+          value={selectedCarId || ""}
+          onValueChange={handleCarSelect}
+          buttons={cars.map((car) => ({
+            value: car.id,
+            label: `${car.brand} ${car.model}`,
+          }))}
+          style={styles.carSelector}
+        />
 
-        {/* Recent Fuel Entries */}
-        <List.Section>
-          <List.Subheader>Recent Entries</List.Subheader>
-          <List.Item
-            title="Shell"
-            description={`45.6L • 2.45 BGN/L • ${format(
-              new Date(),
-              "dd MMM yyyy"
-            )}`}
-            left={(props) => <List.Icon {...props} icon="gas-station" />}
-          />
-        </List.Section>
+        {selectedCarId && (
+          <>
+            {/* Stats Section */}
+            {!entriesLoading && (
+              <List.Section>
+                <List.Subheader>Statistics</List.Subheader>
+                <StatsCard
+                  title="Average Consumption"
+                  value={
+                    entries.length > 0 && averageConsumption !== null
+                      ? `${averageConsumption.toFixed(1)} L/100km`
+                      : "No data"
+                  }
+                />
+              </List.Section>
+            )}
+
+            {/* Entries List */}
+            <List.Section>
+              <List.Subheader>Recent Entries</List.Subheader>
+              {entriesLoading ? (
+                <ActivityIndicator style={styles.listLoader} />
+              ) : (
+                entries.map((entry) => (
+                  <List.Item
+                    key={entry.id}
+                    title={entry.station_name}
+                    description={`${entry.liters}L • ${
+                      entry.price_per_liter
+                    } BGN/L • ${format(new Date(entry.date), "MMM dd, yyyy")}`}
+                    right={(props) => (
+                      <IconButton
+                        {...props}
+                        icon="delete"
+                        onPress={() => handleDelete(entry.id)}
+                      />
+                    )}
+                  />
+                ))
+              )}
+            </List.Section>
+
+            {/* Add Entry Button */}
+            <Button
+              mode="contained"
+              onPress={() => setVisible(true)}
+              style={styles.addButton}
+            >
+              Add Fuel Entry
+            </Button>
+
+            {/* Add Entry Modal */}
+            <AddFuelEntryForm
+              key={`fuel-form-${selectedCarId}-${currentCar?.current_odometer_km}`}
+              visible={visible}
+              onDismiss={() => setVisible(false)}
+              onSubmit={handleSubmit}
+              defaultOdometer={currentCar?.current_odometer_km || 0}
+            />
+          </>
+        )}
       </ScrollView>
-
-      {/* Add Fuel Entry FAB */}
-      <FAB icon="plus" style={styles.fab} onPress={() => setVisible(true)} />
-
-      {/* Add Fuel Entry Modal */}
-      <Portal>
-        <Modal
-          visible={visible}
-          onDismiss={() => setVisible(false)}
-          contentContainerStyle={styles.modal}
-        >
-          <Text style={styles.modalTitle}>Add Fuel Entry</Text>
-
-          <TextInput
-            label="Gas Station Name"
-            value={stationName}
-            onChangeText={setStationName}
-            style={styles.input}
-          />
-
-          <TextInput
-            label="Liters"
-            value={liters}
-            onChangeText={setLiters}
-            keyboardType="numeric"
-            style={styles.input}
-          />
-
-          <TextInput
-            label="Price per Liter (BGN)"
-            value={pricePerLiter}
-            onChangeText={setPricePerLiter}
-            keyboardType="numeric"
-            style={styles.input}
-          />
-
-          <TextInput
-            label="Total Price (BGN)"
-            value={totalPrice}
-            onChangeText={setTotalPrice}
-            keyboardType="numeric"
-            style={styles.input}
-          />
-
-          <TextInput
-            label="Odometer Reading (km)"
-            value={odometer}
-            onChangeText={setOdometer}
-            keyboardType="numeric"
-            style={styles.input}
-          />
-
-          <Button mode="contained" onPress={handleSubmit} style={styles.button}>
-            Save Entry
-          </Button>
-        </Modal>
-      </Portal>
     </View>
   );
 }
@@ -115,6 +391,15 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#f5f5f5",
+  },
+  centerContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 20,
+  },
+  carSelector: {
+    margin: 16,
   },
   statsCard: {
     backgroundColor: "white",
@@ -134,28 +419,12 @@ const styles = StyleSheet.create({
     textAlign: "center",
     marginTop: 4,
   },
-  progressBar: {
-    height: 8,
-    backgroundColor: "#e0e0e0",
-    borderRadius: 4,
-    margin: 16,
-  },
-  progress: {
-    height: "100%",
-    backgroundColor: "#4CAF50",
-    borderRadius: 4,
-  },
-  fab: {
-    position: "absolute",
-    margin: 16,
-    right: 0,
-    bottom: 0,
-  },
   modal: {
     backgroundColor: "white",
     padding: 20,
     margin: 20,
     borderRadius: 8,
+    maxHeight: "90%",
   },
   modalTitle: {
     fontSize: 24,
@@ -169,5 +438,11 @@ const styles = StyleSheet.create({
   },
   addButton: {
     margin: 16,
+  },
+  listLoader: {
+    margin: 20,
+  },
+  segmentedButton: {
+    marginBottom: 16,
   },
 });
