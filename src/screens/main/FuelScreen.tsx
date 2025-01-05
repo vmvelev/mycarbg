@@ -320,8 +320,12 @@ export default function FuelScreen() {
           buttons={cars.map((car) => ({
             value: car.id,
             label: `${car.brand} ${car.model}`,
+            style: cars.length === 1 ? styles.singleCarButton : undefined,
           }))}
-          style={styles.carSelector}
+          style={[
+            styles.carSelector,
+            cars.length === 1 && styles.singleCarSelector,
+          ]}
         />
 
         {selectedCarId && (
@@ -408,6 +412,16 @@ const styles = StyleSheet.create({
   },
   carSelector: {
     margin: 16,
+  },
+  singleCarSelector: {
+    borderRadius: 8,
+    overflow: "hidden",
+  },
+  singleCarButton: {
+    borderTopLeftRadius: 8,
+    borderTopRightRadius: 8,
+    borderBottomLeftRadius: 8,
+    borderBottomRightRadius: 8,
   },
   statsCard: {
     backgroundColor: "white",
