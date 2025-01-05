@@ -53,10 +53,10 @@ const RecordOilChangeForm = memo(
           onDismiss={onDismiss}
           contentContainerStyle={styles.modal}
         >
-          <Text style={styles.modalTitle}>Record Oil Change</Text>
+          <Text style={styles.modalTitle}>Смяна на масло</Text>
 
           <TextInput
-            label="Date"
+            label="Дата"
             defaultValue={formData.date}
             onChangeText={updateField("date")}
             placeholder="YYYY-MM-DD"
@@ -64,7 +64,7 @@ const RecordOilChangeForm = memo(
           />
 
           <TextInput
-            label="Odometer Reading (km)"
+            label="Километри на автомобила"
             defaultValue={formData.odometer_km}
             onChangeText={updateField("odometer_km")}
             keyboardType="numeric"
@@ -72,7 +72,7 @@ const RecordOilChangeForm = memo(
           />
 
           <Button mode="contained" onPress={handleSubmit} style={styles.button}>
-            Save Record
+            Добави
           </Button>
         </Modal>
       </Portal>
@@ -135,14 +135,14 @@ export default function MaintenanceScreen() {
     const odometerNum = parseInt(odometer_km);
 
     if (isNaN(odometerNum) || odometerNum < 0) {
-      Alert.alert("Error", "Please enter a valid odometer reading");
+      Alert.alert("Грешка", "Въведи валидни километри");
       return false;
     }
 
     if (odometerNum <= currentCar.current_odometer_km) {
       Alert.alert(
-        "Error",
-        "Odometer reading must be greater than the current reading"
+        "Грешка",
+        "Километрите трябва да са повече от текущите километри на автомобила"
       );
       return false;
     }
@@ -162,9 +162,8 @@ export default function MaintenanceScreen() {
       setVisible(false);
       // Refresh car data after successful oil change recording
       await fetchCars();
-      Alert.alert("Success", "Oil change recorded successfully");
     } else {
-      Alert.alert("Error", response.error || "Failed to record oil change");
+      Alert.alert("Грешка", response.error || "Грешка при записване");
     }
   };
 
@@ -185,9 +184,9 @@ export default function MaintenanceScreen() {
   if (cars.length === 0) {
     return (
       <View style={styles.centerContainer}>
-        <Text>Please add a car first</Text>
+        <Text>Моля добави автомобил</Text>
         <Button mode="contained" style={styles.button} onPress={() => {}}>
-          Go to Cars
+          Добави автомобил
         </Button>
       </View>
     );
@@ -212,11 +211,11 @@ export default function MaintenanceScreen() {
               <List.Subheader>Oil Change Status</List.Subheader>
 
               <StatusCard
-                title="Distance Until Next Service"
+                title="Километри до следващата смяна"
                 value={`${Math.abs(
                   status.kmUntilNextService
                 ).toLocaleString()} km`}
-                subtitle={status.isOverdueByKm ? "OVERDUE" : "remaining"}
+                subtitle={status.isOverdueByKm ? "ПРОСРОЧЕНИ" : "остават"}
               />
 
               <View style={styles.progressBarContainer}>
@@ -241,15 +240,15 @@ export default function MaintenanceScreen() {
               </View>
 
               <StatusCard
-                title="Time Until Next Service"
-                value={`${Math.abs(status.daysUntilNextService)} days`}
-                subtitle={status.isOverdueByTime ? "OVERDUE" : "remaining"}
+                title="Време до следващата смяна"
+                value={`${Math.abs(status.daysUntilNextService)} дни`}
+                subtitle={status.isOverdueByTime ? "ПРОСРОЧЕНИ" : "остават"}
               />
 
               <StatusCard
-                title="Last Service Details"
+                title="Последна смяна"
                 value={format(status.lastServiceDate, "MMM dd, yyyy")}
-                subtitle={`at ${status.lastServiceKm.toLocaleString()} km`}
+                subtitle={`при ${status.lastServiceKm.toLocaleString()} км`}
               />
             </List.Section>
 
@@ -258,7 +257,7 @@ export default function MaintenanceScreen() {
               onPress={() => setVisible(true)}
               style={styles.addButton}
             >
-              Record Oil Change
+              Запиши смяна на масло
             </Button>
 
             <RecordOilChangeForm

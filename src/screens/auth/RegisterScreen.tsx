@@ -19,12 +19,12 @@ export default function RegisterScreen({ navigation }: Props) {
 
   const handleRegister = async () => {
     if (!email || !password || !confirmPassword) {
-      Alert.alert("Error", "Please fill in all fields");
+      Alert.alert("Грешка", "Попълнете всички полета");
       return;
     }
 
     if (password !== confirmPassword) {
-      Alert.alert("Error", "Passwords do not match");
+      Alert.alert("Грешка", "Сгрешена парола");
       return;
     }
 
@@ -32,13 +32,14 @@ export default function RegisterScreen({ navigation }: Props) {
     try {
       const response = await signUp(email, password);
       if (!response.success) {
-        Alert.alert("Error", response.error?.message || "Failed to sign up");
-      } else {
         Alert.alert(
-          "Success",
-          "Registration successful! Please check your email to verify your account.",
-          [{ text: "OK", onPress: () => navigation.navigate("Login") }]
+          "Грешка",
+          response.error?.message || "Грешка при регистриране"
         );
+      } else {
+        Alert.alert("Успех", "Регистрацията е успешна", [
+          { text: "OK", onPress: () => navigation.navigate("Login") },
+        ]);
       }
     } finally {
       setLoading(false);
@@ -49,15 +50,15 @@ export default function RegisterScreen({ navigation }: Props) {
     <SafeAreaView style={styles.container}>
       <View style={styles.content}>
         <View style={styles.header}>
-          <Title style={styles.title}>Create Account</Title>
+          <Title style={styles.title}>Създаване на акаунт</Title>
           <Text style={styles.subtitle}>
-            Sign up to start tracking your car maintenance
+            Регистирай се, за да започнеш да следиш автомобила си
           </Text>
         </View>
 
         <View style={styles.form}>
           <TextInput
-            label="Email"
+            label="Имейл"
             value={email}
             onChangeText={setEmail}
             keyboardType="email-address"
@@ -67,7 +68,7 @@ export default function RegisterScreen({ navigation }: Props) {
           />
 
           <TextInput
-            label="Password"
+            label="Парола"
             value={password}
             onChangeText={setPassword}
             secureTextEntry={!showPassword}
@@ -81,7 +82,7 @@ export default function RegisterScreen({ navigation }: Props) {
           />
 
           <TextInput
-            label="Confirm Password"
+            label="Потвърдете паролата"
             value={confirmPassword}
             onChangeText={setConfirmPassword}
             secureTextEntry={!showPassword}
@@ -94,18 +95,18 @@ export default function RegisterScreen({ navigation }: Props) {
             loading={loading}
             style={styles.button}
           >
-            Register
+            Регистрация
           </Button>
         </View>
 
         <View style={styles.footer}>
-          <Text>Already have an account? </Text>
+          <Text>Вече имаш акаунт? </Text>
           <Button
             mode="text"
             compact
             onPress={() => navigation.navigate("Login")}
           >
-            Sign In
+            Вход
           </Button>
         </View>
       </View>

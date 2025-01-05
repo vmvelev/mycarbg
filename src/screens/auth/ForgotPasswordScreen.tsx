@@ -16,7 +16,7 @@ export default function ForgotPasswordScreen({ navigation }: Props) {
 
   const handleResetPassword = async () => {
     if (!email) {
-      Alert.alert("Error", "Please enter your email");
+      Alert.alert("Грешка", "Въведи имейла си");
       return;
     }
 
@@ -25,15 +25,13 @@ export default function ForgotPasswordScreen({ navigation }: Props) {
       const response = await resetPassword(email);
       if (!response.success) {
         Alert.alert(
-          "Error",
-          response.error?.message || "Failed to reset password"
+          "Грешка",
+          response.error?.message || "Грешка при изпращане на инструкции"
         );
       } else {
-        Alert.alert(
-          "Success",
-          "Password reset instructions have been sent to your email",
-          [{ text: "OK", onPress: () => navigation.navigate("Login") }]
-        );
+        Alert.alert("Успех", "Инструкциите са изпратени на имейла ти", [
+          { text: "OK", onPress: () => navigation.navigate("Login") },
+        ]);
       }
     } finally {
       setLoading(false);
@@ -44,15 +42,15 @@ export default function ForgotPasswordScreen({ navigation }: Props) {
     <SafeAreaView style={styles.container}>
       <View style={styles.content}>
         <View style={styles.header}>
-          <Title style={styles.title}>Reset Password</Title>
+          <Title style={styles.title}>Забравена парола</Title>
           <Text style={styles.subtitle}>
-            Enter your email to receive reset instructions
+            Въведи имейла си, за да изпратим инструкции за новата парола
           </Text>
         </View>
 
         <View style={styles.form}>
           <TextInput
-            label="Email"
+            label="Имейл"
             value={email}
             onChangeText={setEmail}
             keyboardType="email-address"
@@ -67,7 +65,7 @@ export default function ForgotPasswordScreen({ navigation }: Props) {
             loading={loading}
             style={styles.button}
           >
-            Send Reset Instructions
+            Изпрати инструкции
           </Button>
 
           <Button
@@ -75,7 +73,7 @@ export default function ForgotPasswordScreen({ navigation }: Props) {
             onPress={() => navigation.navigate("Login")}
             style={styles.textButton}
           >
-            Back to Login
+            Вход
           </Button>
         </View>
       </View>

@@ -46,7 +46,7 @@ export default function CarManagementScreen() {
       !lastOilChangeKm ||
       !lastOilChangeDate
     ) {
-      Alert.alert("Error", "Please fill in all fields");
+      Alert.alert("Грешка", "Въведи всички полета");
       return false;
     }
 
@@ -56,13 +56,13 @@ export default function CarManagementScreen() {
       yearNum < 1900 ||
       yearNum > new Date().getFullYear()
     ) {
-      Alert.alert("Error", "Please enter a valid year");
+      Alert.alert("Грешка", "Въведи валидна година на производство");
       return false;
     }
 
     const odometerNum = parseInt(odometer);
     if (isNaN(odometerNum) || odometerNum < 0) {
-      Alert.alert("Error", "Please enter a valid odometer reading");
+      Alert.alert("Грешка", "Въведи валидни километри");
       return false;
     }
 
@@ -91,25 +91,24 @@ export default function CarManagementScreen() {
       resetForm();
       // Refresh cars data after adding a new car
       await fetchCars();
-      Alert.alert("Success", "Car added successfully");
     } else {
-      Alert.alert("Error", response.error || "Failed to add car");
+      Alert.alert("Грешка", response.error || "Грешка при записване");
     }
   };
 
   const handleDelete = async (id: string) => {
     Alert.alert(
-      "Delete Car",
-      "Are you sure you want to delete this car? This action cannot be undone.",
+      "Изтриване на автомобил",
+      "Сигурен ли си, че искаш да изтриеш този автомобил?",
       [
-        { text: "Cancel", style: "cancel" },
+        { text: "Не", style: "cancel" },
         {
-          text: "Delete",
+          text: "Да",
           style: "destructive",
           onPress: async () => {
             const response = await deleteCar(id);
             if (!response.success) {
-              Alert.alert("Error", response.error || "Failed to delete car");
+              Alert.alert("Грешка", response.error || "Грешка при изтриване");
             } else {
               // Refresh cars data after deleting a car
               await fetchCars();
@@ -142,8 +141,8 @@ export default function CarManagementScreen() {
   if (error) {
     return (
       <View style={styles.centerContainer}>
-        <Text>Error loading cars. Please try again.</Text>
-        <Button onPress={() => window.location.reload()}>Reload</Button>
+        <Text>Грешка при зареждане. Моля, опитай по-късно</Text>
+        <Button onPress={() => window.location.reload()}>Презареди</Button>
       </View>
     );
   }
@@ -153,29 +152,35 @@ export default function CarManagementScreen() {
       <ScrollView>
         {cars.length === 0 ? (
           <View style={styles.emptyCars}>
-            <Text style={styles.emptyText}>No cars added yet</Text>
+            <Text style={styles.emptyText}>Все още нямаш автомобил</Text>
             <Button mode="contained" onPress={() => setVisible(true)}>
-              Add Your First Car
+              Добави първия си автомобил
             </Button>
           </View>
         ) : (
           <List.Section>
-            <List.Subheader>My Cars</List.Subheader>
+            <List.Subheader>Автомобили</List.Subheader>
             {cars.map((car) => (
               <List.Item
                 key={car.id}
                 title={`${car.brand} ${car.model}`}
                 description={`${
                   car.year
-                } • ${car.current_odometer_km.toLocaleString()} km\nNext oil change: ${Math.max(
+                } • ${car.current_odometer_km.toLocaleString()} км\nСледваща смяна на масло\n${Math.max(
                   0,
                   car.last_oil_change_km +
                     car.oil_change_km -
                     car.current_odometer_km
-                ).toLocaleString()} km or ${format(
-                  new Date(car.last_oil_change_date),
-                  "MMM dd, yyyy"
+                ).toLocaleString()} км или ${format(
+                  new Date(
+                    new Date(car.last_oil_change_date).setMonth(
+                      new Date(car.last_oil_change_date).getMonth() +
+                        car.oil_change_months
+                    )
+                  ),
+                  "dd MMM yyyy"
                 )}`}
+                descriptionNumberOfLines={3}
                 left={(props) => <List.Icon {...props} icon="car" />}
                 right={(props) => (
                   <IconButton
@@ -195,7 +200,7 @@ export default function CarManagementScreen() {
             onPress={() => setVisible(true)}
             style={styles.addButton}
           >
-            Add Another Car
+            Добави автомобил
           </Button>
         )}
       </ScrollView>
@@ -209,24 +214,24 @@ export default function CarManagementScreen() {
           }}
           contentContainerStyle={styles.modal}
         >
-          <Text style={styles.modalTitle}>Add New Car</Text>
+          <Text style={styles.modalTitle}>Нов автомобил</Text>
 
           <TextInput
-            label="Brand"
+            label="Марка"
             value={brand}
             onChangeText={setBrand}
             style={styles.input}
           />
 
           <TextInput
-            label="Model"
+            label="Модел"
             value={model}
             onChangeText={setModel}
             style={styles.input}
           />
 
           <TextInput
-            label="Year of Manufacturing"
+            label="Година на производство"
             value={year}
             onChangeText={setYear}
             keyboardType="numeric"
@@ -234,7 +239,7 @@ export default function CarManagementScreen() {
           />
 
           <TextInput
-            label="Oil Change Interval (km)"
+            label="Интервал за смяна на масло (км)"
             value={oilChangeKm}
             onChangeText={setOilChangeKm}
             keyboardType="numeric"
@@ -242,7 +247,7 @@ export default function CarManagementScreen() {
           />
 
           <TextInput
-            label="Oil Change Interval (months)"
+            label="Интервал за смяна на масло (месеци)"
             value={oilChangeMonths}
             onChangeText={setOilChangeMonths}
             keyboardType="numeric"
@@ -250,7 +255,7 @@ export default function CarManagementScreen() {
           />
 
           <TextInput
-            label="Current Odometer Reading (km)"
+            label="Текущи километри"
             value={odometer}
             onChangeText={setOdometer}
             keyboardType="numeric"
@@ -258,7 +263,7 @@ export default function CarManagementScreen() {
           />
 
           <TextInput
-            label="Last Oil Change Odometer Reading (km)"
+            label="Километри при последната смяна на масло"
             value={lastOilChangeKm}
             onChangeText={setLastOilChangeKm}
             keyboardType="numeric"
@@ -266,7 +271,7 @@ export default function CarManagementScreen() {
           />
 
           <TextInput
-            label="Last Oil Change Date"
+            label="Датата на последната смяня на масло"
             value={lastOilChangeDate}
             onChangeText={setLastOilChangeDate}
             placeholder="YYYY-MM-DD"
@@ -280,7 +285,7 @@ export default function CarManagementScreen() {
             loading={submitting}
             disabled={submitting}
           >
-            Save Car
+            Добави
           </Button>
         </Modal>
       </Portal>

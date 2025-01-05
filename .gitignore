@@ -36,3 +36,8 @@ yarn-error.*
 *.tsbuildinfo
 
 .env
+
+.env.development
+.env.production
+*.jks
+key.json

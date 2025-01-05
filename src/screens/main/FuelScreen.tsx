@@ -91,10 +91,10 @@ const AddFuelEntryForm = memo(
           contentContainerStyle={styles.modal}
         >
           <ScrollView>
-            <Text style={styles.modalTitle}>Add Fuel Entry</Text>
+            <Text style={styles.modalTitle}>Добави зареждане</Text>
 
             <TextInput
-              label="Date"
+              label="Дата"
               defaultValue={formData.date}
               onChangeText={updateField("date")}
               placeholder="YYYY-MM-DD"
@@ -102,14 +102,14 @@ const AddFuelEntryForm = memo(
             />
 
             <TextInput
-              label="Gas Station Name"
+              label="Бензиностанция"
               defaultValue={formData.station_name}
               onChangeText={updateField("station_name")}
               style={styles.input}
             />
 
             <TextInput
-              label="Liters"
+              label="Литри"
               defaultValue={formData.liters}
               onChangeText={updateField("liters")}
               keyboardType="numeric"
@@ -120,15 +120,15 @@ const AddFuelEntryForm = memo(
               value={priceInputMethod}
               onValueChange={setPriceInputMethod}
               buttons={[
-                { value: "total", label: "Total Price" },
-                { value: "per_liter", label: "Price per Liter" },
+                { value: "total", label: "Обща цена" },
+                { value: "per_liter", label: "Цена за литър" },
               ]}
               style={styles.segmentedButton}
             />
 
             {priceInputMethod === "per_liter" ? (
               <TextInput
-                label="Price per Liter (BGN)"
+                label="Цена на литър"
                 defaultValue={formData.price_per_liter}
                 onChangeText={updateField("price_per_liter")}
                 keyboardType="numeric"
@@ -136,7 +136,7 @@ const AddFuelEntryForm = memo(
               />
             ) : (
               <TextInput
-                label="Total Price (BGN)"
+                label="Обща цена"
                 defaultValue={formData.total_price}
                 onChangeText={updateField("total_price")}
                 keyboardType="numeric"
@@ -145,7 +145,7 @@ const AddFuelEntryForm = memo(
             )}
 
             <TextInput
-              label="Odometer Reading (km)"
+              label="Километри на автомобила"
               defaultValue={defaultOdometer.toString()}
               onChangeText={updateField("odometer_km")}
               keyboardType="numeric"
@@ -157,7 +157,7 @@ const AddFuelEntryForm = memo(
               onPress={handleSubmit}
               style={styles.button}
             >
-              Save Entry
+              Добави
             </Button>
           </ScrollView>
         </Modal>
@@ -216,26 +216,26 @@ export default function FuelScreen() {
     const { station_name, liters, odometer_km } = formData;
 
     if (!station_name || !liters || !odometer_km) {
-      Alert.alert("Error", "Please fill in all required fields");
+      Alert.alert("Грешка", "Въведи всички полета");
       return false;
     }
 
     const litersNum = parseFloat(liters);
     if (isNaN(litersNum) || litersNum <= 0) {
-      Alert.alert("Error", "Please enter a valid amount of liters");
+      Alert.alert("Грешка", "Литрите трябва да са положително число");
       return false;
     }
 
     const odometerNum = parseInt(odometer_km);
     if (isNaN(odometerNum) || odometerNum < 0) {
-      Alert.alert("Error", "Please enter a valid odometer reading");
+      Alert.alert("Грешка", "Километрите трябва да са положително число");
       return false;
     }
 
     if (currentCar && odometerNum <= currentCar.current_odometer_km) {
       Alert.alert(
-        "Error",
-        "Odometer reading must be greater than the current reading"
+        "Грешка",
+        "Километрите трябва да са по-големи от текущите километри на автомобила"
       );
       return false;
     }
@@ -246,7 +246,7 @@ export default function FuelScreen() {
   const handleSubmit = async (formData: any) => {
     if (!validateForm(formData)) return;
     if (!selectedCarId) {
-      Alert.alert("Error", "Please select a car first");
+      Alert.alert("Грешка", "Избери автомобил");
       return;
     }
 
@@ -263,17 +263,17 @@ export default function FuelScreen() {
       setVisible(false);
       // Refresh both cars and entries data
       await Promise.all([fetchCars(), refreshEntries()]);
-      Alert.alert("Success", "Fuel entry added successfully");
+      // Alert.alert("Успех", "Fuel entry added successfully");
     } else {
-      Alert.alert("Error", response.error || "Failed to add fuel entry");
+      Alert.alert("Грешка", response.error || "Грешка при добавяне на запис");
     }
   };
 
   const handleDelete = async (id: string) => {
-    Alert.alert("Delete Entry", "Are you sure you want to delete this entry?", [
-      { text: "Cancel", style: "cancel" },
+    Alert.alert("Изтриване", "Сигурен ли си, че искаш да изтриеш записа?", [
+      { text: "Не", style: "cancel" },
       {
-        text: "Delete",
+        text: "Да",
         style: "destructive",
         onPress: async () => {
           const response = await deleteEntry(id);
@@ -281,7 +281,10 @@ export default function FuelScreen() {
             // Refresh both cars and entries data after deletion
             await Promise.all([fetchCars(), refreshEntries()]);
           } else {
-            Alert.alert("Error", response.error || "Failed to delete entry");
+            Alert.alert(
+              "Грешка",
+              response.error || "Грешка при изтриване на запис"
+            );
           }
         },
       },
@@ -299,9 +302,9 @@ export default function FuelScreen() {
   if (cars.length === 0) {
     return (
       <View style={styles.centerContainer}>
-        <Text>Please add a car first</Text>
+        <Text>Моля добави автомобил</Text>
         <Button mode="contained" style={styles.button} onPress={() => {}}>
-          Go to Cars
+          Добави автомобил
         </Button>
       </View>
     );
@@ -326,42 +329,47 @@ export default function FuelScreen() {
             {/* Stats Section */}
             {!entriesLoading && (
               <List.Section>
-                <List.Subheader>Statistics</List.Subheader>
+                <List.Subheader>Статистика</List.Subheader>
                 <StatsCard
-                  title="Average Consumption"
+                  title="Среден разход"
                   value={
                     entries.length > 0 && averageConsumption !== null
                       ? `${averageConsumption.toFixed(1)} L/100km`
-                      : "No data"
+                      : "Няма данни"
                   }
                 />
               </List.Section>
             )}
 
             {/* Entries List */}
-            <List.Section>
-              <List.Subheader>Recent Entries</List.Subheader>
-              {entriesLoading ? (
-                <ActivityIndicator style={styles.listLoader} />
-              ) : (
-                entries.map((entry) => (
-                  <List.Item
-                    key={entry.id}
-                    title={entry.station_name}
-                    description={`${entry.liters}L • ${
-                      entry.price_per_liter
-                    } BGN/L • ${format(new Date(entry.date), "MMM dd, yyyy")}`}
-                    right={(props) => (
-                      <IconButton
-                        {...props}
-                        icon="delete"
-                        onPress={() => handleDelete(entry.id)}
-                      />
-                    )}
-                  />
-                ))
-              )}
-            </List.Section>
+            {entries.length > 0 && (
+              <List.Section>
+                <List.Subheader>Последни зареждания</List.Subheader>
+                {entriesLoading ? (
+                  <ActivityIndicator style={styles.listLoader} />
+                ) : (
+                  entries.map((entry) => (
+                    <List.Item
+                      key={entry.id}
+                      title={entry.station_name}
+                      description={`${entry.liters}L • ${
+                        entry.price_per_liter
+                      } BGN/L • ${format(
+                        new Date(entry.date),
+                        "MMM dd, yyyy"
+                      )}`}
+                      right={(props) => (
+                        <IconButton
+                          {...props}
+                          icon="delete"
+                          onPress={() => handleDelete(entry.id)}
+                        />
+                      )}
+                    />
+                  ))
+                )}
+              </List.Section>
+            )}
 
             {/* Add Entry Button */}
             <Button
@@ -369,7 +377,7 @@ export default function FuelScreen() {
               onPress={() => setVisible(true)}
               style={styles.addButton}
             >
-              Add Fuel Entry
+              Добави зареждане
             </Button>
 
             {/* Add Entry Modal */}

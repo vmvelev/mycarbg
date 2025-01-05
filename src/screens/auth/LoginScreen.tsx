@@ -18,7 +18,7 @@ export default function LoginScreen({ navigation }: Props) {
 
   const handleLogin = async () => {
     if (!email || !password) {
-      Alert.alert("Error", "Please fill in all fields");
+      Alert.alert("Грешка", "Попълнете всички полета");
       return;
     }
 
@@ -26,7 +26,7 @@ export default function LoginScreen({ navigation }: Props) {
     try {
       const response = await signIn(email, password);
       if (!response.success) {
-        Alert.alert("Error", response.error?.message || "Failed to sign in");
+        Alert.alert("Грешка", response.error?.message || "Грешка при влизане");
       }
     } finally {
       setLoading(false);
@@ -37,15 +37,13 @@ export default function LoginScreen({ navigation }: Props) {
     <SafeAreaView style={styles.container}>
       <View style={styles.content}>
         <View style={styles.header}>
-          <Title style={styles.title}>Welcome Back</Title>
-          <Text style={styles.subtitle}>
-            Sign in to track your car's maintenance
-          </Text>
+          <Title style={styles.title}>Здравей</Title>
+          <Text style={styles.subtitle}>Влез, за да следиш автомобила си</Text>
         </View>
 
         <View style={styles.form}>
           <TextInput
-            label="Email"
+            label="Имейл"
             value={email}
             onChangeText={setEmail}
             keyboardType="email-address"
@@ -55,7 +53,7 @@ export default function LoginScreen({ navigation }: Props) {
           />
 
           <TextInput
-            label="Password"
+            label="Парола"
             value={password}
             onChangeText={setPassword}
             secureTextEntry={!showPassword}
@@ -74,7 +72,7 @@ export default function LoginScreen({ navigation }: Props) {
             loading={loading}
             style={styles.button}
           >
-            Sign In
+            Вход
           </Button>
 
           <Button
@@ -82,18 +80,18 @@ export default function LoginScreen({ navigation }: Props) {
             onPress={() => navigation.navigate("ForgotPassword")}
             style={styles.textButton}
           >
-            Forgot Password?
+            Забравена парола?
           </Button>
         </View>
 
         <View style={styles.footer}>
-          <Text>Don't have an account? </Text>
+          <Text>Все още нямаш акаунт? </Text>
           <Button
             mode="text"
             compact
             onPress={() => navigation.navigate("Register")}
           >
-            Register
+            Регистрация
           </Button>
         </View>
       </View>

@@ -22,6 +22,28 @@ import {
   AuthStackParamList,
   MainTabParamList,
 } from "../types/navigation";
+import { ErrorBoundary } from "../components/ErrorBoundary";
+
+const DEBUG = true;
+const log = (...args: any[]) => {
+  if (DEBUG) {
+    console.log("[Navigation]", ...args);
+  }
+};
+
+const withErrorBoundary = (
+  ScreenComponent: React.ComponentType<any>,
+  screenName: string
+) => {
+  return (props: any) => {
+    log(`Rendering screen: ${screenName}`);
+    return (
+      <ErrorBoundary>
+        <ScreenComponent {...props} />
+      </ErrorBoundary>
+    );
+  };
+};
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 const AuthStack = createNativeStackNavigator<AuthStackParamList>();
@@ -29,6 +51,7 @@ const MainTab = createBottomTabNavigator<MainTabParamList>();
 
 // Auth Navigator
 function AuthNavigator() {
+  log("Rendering AuthNavigator");
   return (
     <AuthStack.Navigator
       screenOptions={{
@@ -36,11 +59,17 @@ function AuthNavigator() {
         contentStyle: { backgroundColor: "white" },
       }}
     >
-      <AuthStack.Screen name="Login" component={LoginScreen} />
-      <AuthStack.Screen name="Register" component={RegisterScreen} />
+      <AuthStack.Screen
+        name="Login"
+        component={withErrorBoundary(LoginScreen, "Login")}
+      />
+      <AuthStack.Screen
+        name="Register"
+        component={withErrorBoundary(RegisterScreen, "Register")}
+      />
       <AuthStack.Screen
         name="ForgotPassword"
-        component={ForgotPasswordScreen}
+        component={withErrorBoundary(ForgotPasswordScreen, "ForgotPassword")}
       />
     </AuthStack.Navigator>
   );
@@ -48,12 +77,12 @@ function AuthNavigator() {
 
 // Main App Navigator
 function MainNavigator() {
+  log("Rendering MainNavigator");
   return (
     <MainTab.Navigator
       screenOptions={({ route }) => ({
         tabBarIcon: ({ color, size }) => {
           let iconName: keyof typeof MaterialCommunityIcons.glyphMap = "help";
-
           switch (route.name) {
             case "Fuel":
               iconName = "gas-station";
@@ -65,7 +94,6 @@ function MainNavigator() {
               iconName = "car";
               break;
           }
-
           return (
             <MaterialCommunityIcons name={iconName} size={size} color={color} />
           );
@@ -75,12 +103,20 @@ function MainNavigator() {
         headerShown: true,
       })}
     >
-      <MainTab.Screen name="Fuel" component={FuelScreen} />
-      <MainTab.Screen name="Maintenance" component={MaintenanceScreen} />
+      <MainTab.Screen
+        name="Fuel"
+        component={withErrorBoundary(FuelScreen, "Fuel")}
+        options={{ title: "Гориво" }}
+      />
+      <MainTab.Screen
+        name="Maintenance"
+        component={withErrorBoundary(MaintenanceScreen, "Maintenance")}
+        options={{ title: "Обслужване" }}
+      />
       <MainTab.Screen
         name="Cars"
-        component={CarManagementScreen}
-        options={{ title: "My Cars" }}
+        component={withErrorBoundary(CarManagementScreen, "Cars")}
+        options={{ title: "Автомобили" }}
       />
     </MainTab.Navigator>
   );
@@ -99,12 +135,18 @@ function LoadingScreen() {
 export default function RootNavigator() {
   const { user, loading } = useAuthContext();
 
+  log("RootNavigator render:", { user: !!user, loading });
+
   if (loading) {
     return <LoadingScreen />;
   }
 
   return (
-    <NavigationContainer>
+    <NavigationContainer
+      onStateChange={(state) => {
+        log("Navigation state changed:", state);
+      }}
+    >
       <Stack.Navigator screenOptions={{ headerShown: false }}>
         {user ? (
           <Stack.Screen name="Main" component={MainNavigator} />
