@@ -41,3 +41,5 @@ yarn-error.*
 .env.production
 *.jks
 key.json
+
+android/
