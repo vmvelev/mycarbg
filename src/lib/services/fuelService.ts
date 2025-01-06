@@ -8,6 +8,7 @@ export interface AddFuelEntryInput {
   price_per_liter?: number;
   total_price: number;
   odometer_km: number;
+  is_full_tank: boolean;
 }
 
 export interface FuelService {
@@ -30,6 +31,10 @@ const calculateEfficiency = (
 ): number | undefined => {
   if (!previousEntry) return undefined;
 
+  // Only calculate if both entries are full tank
+  if (!currentEntry.is_full_tank || !previousEntry.is_full_tank)
+    return undefined;
+
   const distanceTraveled = currentEntry.odometer_km - previousEntry.odometer_km;
   if (distanceTraveled <= 0) return undefined;
 
@@ -45,11 +50,15 @@ export const fuelService: FuelService = {
       .from("fuel_entries")
       .select("*")
       .eq("car_id", entry.car_id)
+      .eq("is_full_tank", true) // Only get full tank entries
+      .lt("odometer_km", entry.odometer_km) // Only get entries with lower odometer readings
       .order("odometer_km", { ascending: false })
       .limit(1);
 
     const previousEntry = previousEntries?.[0];
-    const calculated_l_per_100km = calculateEfficiency(entry, previousEntry);
+    const calculated_l_per_100km = entry.is_full_tank
+      ? calculateEfficiency(entry, previousEntry)
+      : null;
 
     // If price_per_liter is not provided, calculate it from total_price
     const price_per_liter =

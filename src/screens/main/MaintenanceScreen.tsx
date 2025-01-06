@@ -15,6 +15,7 @@ import { useCars } from "../../hooks/useCars";
 import { useMaintenance } from "../../hooks/useMaintenance";
 import { format } from "date-fns";
 import { useFocusEffect } from "@react-navigation/native";
+import { bg } from "date-fns/locale";
 
 // Memoized Form Component
 const RecordOilChangeForm = memo(
@@ -139,13 +140,14 @@ export default function MaintenanceScreen() {
       return false;
     }
 
-    if (odometerNum <= currentCar.current_odometer_km) {
-      Alert.alert(
-        "Грешка",
-        "Километрите трябва да са повече от текущите километри на автомобила"
-      );
-      return false;
-    }
+    // Disable this check for now
+    // if (odometerNum <= currentCar.current_odometer_km) {
+    //   Alert.alert(
+    //     "Грешка",
+    //     "Километрите трябва да са повече от текущите километри на автомобила"
+    //   );
+    //   return false;
+    // }
 
     return true;
   };
@@ -195,21 +197,30 @@ export default function MaintenanceScreen() {
   return (
     <View style={styles.container}>
       <ScrollView>
-        <SegmentedButtons
-          value={selectedCarId || ""}
-          onValueChange={setSelectedCarId}
-          buttons={cars.map((car) => ({
-            value: car.id,
-            label: `${car.brand} ${car.model}`,
-          }))}
-          style={styles.carSelector}
-        />
+        {cars.length === 1 && (
+          <Button
+            mode="outlined"
+            style={styles.addButton}
+            onPress={() => setSelectedCarId(cars[0].id)}
+          >
+            {`${cars[0].brand} ${cars[0].model}`}
+          </Button>
+        )}
+        {cars.length > 1 && (
+          <SegmentedButtons
+            value={selectedCarId || ""}
+            onValueChange={setSelectedCarId}
+            buttons={cars.map((car) => ({
+              value: car.id,
+              label: `${car.brand} ${car.model}`,
+            }))}
+            style={styles.carSelector}
+          />
+        )}
 
         {selectedCarId && status && (
           <>
             <List.Section>
-              <List.Subheader>Oil Change Status</List.Subheader>
-
               <StatusCard
                 title="Километри до следващата смяна"
                 value={`${Math.abs(
@@ -247,7 +258,9 @@ export default function MaintenanceScreen() {
 
               <StatusCard
                 title="Последна смяна"
-                value={format(status.lastServiceDate, "MMM dd, yyyy")}
+                value={format(status.lastServiceDate, "d MMM yyyy", {
+                  locale: bg,
+                })}
                 subtitle={`при ${status.lastServiceKm.toLocaleString()} км`}
               />
             </List.Section>

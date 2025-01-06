@@ -26,8 +26,7 @@ export default {
       },
       package: "com.venelinvelev.mycarbg",
       versionCode: 1,
-      jsEngine: "hermes",
-      enableNewArchitecture: false, // Temporarily disabled for dev
+      enableNewArchitecture: true,
       softwareKeyboardLayoutMode: "pan",
       allowBackup: true,
       permissions: ["INTERNET", "WAKE_LOCK"],
@@ -39,7 +38,17 @@ export default {
         projectId: "f366305a-9f10-4e63-b464-11d6fa4dee99",
       },
     },
-    plugins: ["expo-secure-store"],
+    plugins: [
+      "expo-secure-store",
+      [
+        "expo-build-properties",
+        {
+          android: {
+            enableProguardInReleaseBuilds: true,
+          },
+        },
+      ],
+    ],
     developmentClient: {
       silentLaunch: false,
     },

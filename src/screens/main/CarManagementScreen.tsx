@@ -14,6 +14,7 @@ import {
 import { useCars } from "../../hooks/useCars";
 import { format } from "date-fns";
 import { useFocusEffect } from "@react-navigation/native";
+import { bg } from "date-fns/locale";
 
 export default function CarManagementScreen() {
   const { cars, loading, error, addCar, deleteCar, fetchCars } = useCars();
@@ -159,7 +160,6 @@ export default function CarManagementScreen() {
           </View>
         ) : (
           <List.Section>
-            <List.Subheader>Автомобили</List.Subheader>
             {cars.map((car) => (
               <List.Item
                 key={car.id}
@@ -178,7 +178,8 @@ export default function CarManagementScreen() {
                         car.oil_change_months
                     )
                   ),
-                  "dd MMM yyyy"
+                  "dd MMM yyyy",
+                  { locale: bg }
                 )}`}
                 descriptionNumberOfLines={3}
                 left={(props) => <List.Icon {...props} icon="car" />}
@@ -194,7 +195,12 @@ export default function CarManagementScreen() {
           </List.Section>
         )}
 
-        {cars.length > 0 && (
+        <Text style={styles.noticeText}>
+          Извиняваме се за неудобството! Към момента не можеш да добавиш повече
+          от един автомобил
+        </Text>
+
+        {/* {cars.length > 0 && (
           <Button
             mode="contained"
             onPress={() => setVisible(true)}
@@ -202,7 +208,7 @@ export default function CarManagementScreen() {
           >
             Добави автомобил
           </Button>
-        )}
+        )} */}
       </ScrollView>
 
       <Portal>
@@ -333,6 +339,12 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   addButton: {
+    margin: 16,
+  },
+  noticeText: {
+    fontSize: 12,
+    color: "#666",
+    textAlign: "center",
     margin: 16,
   },
 });

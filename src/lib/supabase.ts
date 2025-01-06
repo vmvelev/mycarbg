@@ -65,5 +65,6 @@ export type FuelEntry = {
   total_price: number;
   odometer_km: number;
   calculated_l_per_100km?: number;
+  is_full_tank: boolean;
   created_at: string;
 };

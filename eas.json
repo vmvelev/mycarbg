@@ -1,6 +1,7 @@
 {
   "cli": {
-    "version": ">= 5.9.1"
+    "version": ">= 5.9.1",
+    "appVersionSource": "remote"
   },
   "build": {
     "development": {
@@ -24,6 +25,11 @@
         "appleId": "vmvelev@gmail.com",
         "ascAppId": "your-app-store-connect-app-id",
         "appleTeamId": "your-team-id"
+      },
+      "android": {
+        "track": "internal",
+        "serviceAccountKeyPath": "./key.json",
+        "releaseStatus": "draft"
       }
     }
   }

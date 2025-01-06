@@ -3,7 +3,6 @@ import { PaperProvider } from "react-native-paper";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { AuthProvider } from "./src/contexts/AuthContext";
 import RootNavigator from "./src/navigation";
-import { ErrorBoundary } from "./src/components/ErrorBoundary";
 import { LogBox, Platform } from "react-native";
 import { enableScreens } from "react-native-screens";
 
@@ -34,17 +33,13 @@ LogBox.ignoreLogs([
 
 export default function App() {
   return (
-    <ErrorBoundary>
-      <AuthProvider>
-        <PaperProvider>
-          <SafeAreaProvider>
-            <StatusBar style="auto" />
-            <ErrorBoundary>
-              <RootNavigator />
-            </ErrorBoundary>
-          </SafeAreaProvider>
-        </PaperProvider>
-      </AuthProvider>
-    </ErrorBoundary>
+    <AuthProvider>
+      <PaperProvider>
+        <SafeAreaProvider>
+          <StatusBar style="auto" />
+          <RootNavigator />
+        </SafeAreaProvider>
+      </PaperProvider>
+    </AuthProvider>
   );
 }
