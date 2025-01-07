@@ -225,7 +225,7 @@ export default function MaintenanceScreen() {
                 title="Километри до следващата смяна"
                 value={`${Math.abs(
                   status.kmUntilNextService
-                ).toLocaleString()} km`}
+                ).toLocaleString()} км`}
                 subtitle={status.isOverdueByKm ? "ПРОСРОЧЕНИ" : "остават"}
               />
 
